@@ -36,27 +36,28 @@ export function Sidebar({ className }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "flex flex-col h-full bg-[var(--card)] border-r border-[var(--border)]",
+        "flex flex-col h-full border-r",
         "w-[var(--sidebar-width)] flex-shrink-0",
+        "bg-[#0d0d1a] border-[#1e1e35]",
         className
       )}
     >
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-4 h-14 border-b border-[var(--border)]">
-        <div className="flex items-center justify-center h-7 w-7 rounded-md bg-[var(--primary)]">
-          <Zap className="h-4 w-4 text-[var(--primary-foreground)]" />
+      <div className="flex items-center gap-2.5 px-4 h-14 border-b border-[#1e1e35]">
+        <div className="flex items-center justify-center h-7 w-7 rounded-md bg-indigo-600">
+          <Zap className="h-4 w-4 text-white" />
         </div>
-        <span className="font-semibold text-sm tracking-tight">Relay</span>
+        <span className="font-semibold text-sm tracking-tight text-white">Relay</span>
       </div>
 
       {/* Org switcher */}
-      <div className="px-3 py-3 border-b border-[var(--border)]">
-        <button className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-[var(--accent)] transition-colors text-left">
-          <div className="h-5 w-5 rounded bg-blue-500 flex items-center justify-center flex-shrink-0">
+      <div className="px-3 py-3 border-b border-[#1e1e35]">
+        <button className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-white/5 transition-colors text-left">
+          <div className="h-5 w-5 rounded bg-indigo-500 flex items-center justify-center flex-shrink-0">
             <span className="text-white text-[10px] font-bold">A</span>
           </div>
-          <span className="text-xs font-medium flex-1 truncate">Acme Outreach Org</span>
-          <ChevronDown className="h-3 w-3 text-[var(--muted-foreground)] flex-shrink-0" />
+          <span className="text-xs font-medium flex-1 truncate text-gray-300">Acme Outreach Org</span>
+          <ChevronDown className="h-3 w-3 text-gray-500 flex-shrink-0" />
         </button>
       </div>
 
@@ -72,11 +73,11 @@ export function Sidebar({ className }: SidebarProps) {
                   className={cn(
                     "flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-colors",
                     isActive
-                      ? "bg-[var(--accent)] font-medium text-[var(--foreground)]"
-                      : "text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)]"
+                      ? "bg-indigo-600/20 text-white font-medium border border-indigo-600/30"
+                      : "text-gray-400 hover:text-white hover:bg-white/5"
                   )}
                 >
-                  <Icon className="h-4 w-4 flex-shrink-0" />
+                  <Icon className={cn("h-4 w-4 flex-shrink-0", isActive ? "text-indigo-400" : "")} />
                   {label}
                 </Link>
               </li>
@@ -86,12 +87,12 @@ export function Sidebar({ className }: SidebarProps) {
       </nav>
 
       {/* User */}
-      <div className="px-3 py-3 border-t border-[var(--border)]">
-        <button className="w-full flex items-center gap-2.5 px-2 py-2 rounded-md hover:bg-[var(--accent)] transition-colors">
+      <div className="px-3 py-3 border-t border-[#1e1e35]">
+        <button className="w-full flex items-center gap-2.5 px-2 py-2 rounded-md hover:bg-white/5 transition-colors">
           <Avatar name="Alex Rivera" size="sm" />
           <div className="flex-1 text-left min-w-0">
-            <p className="text-xs font-medium truncate">Alex Rivera</p>
-            <p className="text-[10px] text-[var(--muted-foreground)] truncate">Admin</p>
+            <p className="text-xs font-medium truncate text-gray-200">Alex Rivera</p>
+            <p className="text-[10px] text-gray-500 truncate">Admin</p>
           </div>
         </button>
       </div>
