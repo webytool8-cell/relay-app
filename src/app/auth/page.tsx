@@ -1,16 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Zap, Mail, ArrowRight, Loader2, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
+import { useUser } from "@/contexts/user-context";
 
 type Mode = "email" | "magic";
 
 export default function AuthPage() {
   const router = useRouter();
+  const { user, signIn, signInDemo } = useUser();
   const [mode, setMode] = useState<Mode>("email");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,24 +20,38 @@ export default function AuthPage() {
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
 
+  // Already signed in → go to dashboard
+  useEffect(() => {
+    if (user) router.replace("/dashboard");
+  }, [user, router]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
 
-    // Demo: just redirect to dashboard after brief delay
-    await new Promise((r) => setTimeout(r, 1000));
-
     if (mode === "magic") {
+      await new Promise((r) => setTimeout(r, 800));
       setSent(true);
     } else {
-      if (email && password) {
-        router.push("/dashboard");
+      if (!password.trim()) {
+        setError("Please enter your password.");
+        setLoading(false);
+        return;
+      }
+      const { error } = await signIn(email, password);
+      if (error) {
+        setError(error);
       } else {
-        setError("Please enter your email and password.");
+        router.push("/dashboard");
       }
     }
     setLoading(false);
+  }
+
+  function handleDemo() {
+    signInDemo();
+    router.push("/dashboard");
   }
 
   return (
@@ -43,12 +59,12 @@ export default function AuthPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-[var(--primary)] mb-4">
-            <Zap className="h-6 w-6 text-[var(--primary-foreground)]" />
+          <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-indigo-600 mb-4">
+            <Zap className="h-6 w-6 text-white" />
           </div>
           <h1 className="text-2xl font-bold">Welcome to Relay</h1>
           <p className="text-sm text-[var(--muted-foreground)] mt-1">
-            Client intelligence & coordination platform
+            Client intelligence &amp; coordination platform
           </p>
         </div>
 
@@ -90,12 +106,7 @@ export default function AuthPage() {
               <p className="text-sm text-[var(--muted-foreground)]">
                 We sent a magic link to <strong>{email}</strong>
               </p>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="mt-4"
-                onClick={() => { setSent(false); setEmail(""); }}
-              >
+              <Button variant="ghost" size="sm" className="mt-4" onClick={() => { setSent(false); setEmail(""); }}>
                 Use a different email
               </Button>
             </div>
@@ -137,11 +148,7 @@ export default function AuthPage() {
                 </p>
               )}
 
-              <Button
-                type="submit"
-                className="w-full gap-2 mt-4"
-                disabled={loading}
-              >
+              <Button type="submit" className="w-full gap-2 mt-1" disabled={loading}>
                 {loading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
@@ -160,14 +167,9 @@ export default function AuthPage() {
           <p className="text-xs text-[var(--muted-foreground)] mb-2">
             Want to explore without an account?
           </p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => router.push("/dashboard")}
-            className="gap-2"
-          >
+          <Button variant="outline" size="sm" onClick={handleDemo} className="gap-2">
             <Zap className="h-3.5 w-3.5" />
-            Enter Demo Mode
+            Enter as Alex Rivera (Demo)
           </Button>
         </div>
 
