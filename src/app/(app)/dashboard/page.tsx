@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Users,
@@ -13,51 +14,14 @@ import {
   Clock,
   CheckCircle2,
 } from "lucide-react";
-import { DEMO_RECORDS, DEMO_INTERACTIONS, DEMO_STATS, DEMO_TEAM, STATUS_MAP, FLAG_MAP } from "@/lib/demo-data";
+import { useRecords } from "@/contexts/records-context";
+import { DEMO_STATS, DEMO_TEAM, STATUS_MAP, FLAG_MAP } from "@/lib/demo-data";
 import { formatRelativeTime, cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Avatar } from "@/components/ui/avatar";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-
-const STAT_CARDS = [
-  {
-    label: "Total Records",
-    value: DEMO_STATS.total_records,
-    icon: Users,
-    color: "text-blue-600",
-    bg: "bg-blue-50",
-    change: "+12 this month",
-  },
-  {
-    label: "Active",
-    value: DEMO_STATS.active_records,
-    icon: Activity,
-    color: "text-emerald-600",
-    bg: "bg-emerald-50",
-    change: `${Math.round((DEMO_STATS.active_records / DEMO_STATS.total_records) * 100)}% of total`,
-  },
-  {
-    label: "Sheltered",
-    value: DEMO_STATS.sheltered,
-    icon: Home,
-    color: "text-blue-600",
-    bg: "bg-blue-50",
-    change: "+5 this week",
-  },
-  {
-    label: "Active Flags",
-    value: DEMO_STATS.active_flags,
-    icon: AlertTriangle,
-    color: "text-red-600",
-    bg: "bg-red-50",
-    change: "Needs attention",
-  },
-];
-
-const RECENT_INTERACTIONS = DEMO_INTERACTIONS.slice(0, 5);
-const FLAGGED_RECORDS = DEMO_RECORDS.filter((r) => (r.active_flags?.length ?? 0) > 0).slice(0, 4);
-const FOLLOW_UP_RECORDS = DEMO_RECORDS.filter((r) => r.status === "follow_up").slice(0, 4);
+import { NewEditRecordModal } from "@/components/records/new-edit-record-modal";
 
 const QUICK_ACTIONS = [
   { label: "New Record", icon: Plus, href: "/records/new", description: "Add a new client record" },
@@ -67,6 +31,52 @@ const QUICK_ACTIONS = [
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { records, interactions } = useRecords();
+  const [newOpen, setNewOpen] = useState(false);
+
+  const activeRecords = records.filter((r) => r.status === "active");
+  const shelteredRecords = records.filter((r) => r.status === "sheltered");
+  const flaggedRecords = records.filter((r) => r.active_flags.length > 0).slice(0, 4);
+  const followUpRecords = records.filter((r) => r.status === "follow_up").slice(0, 4);
+
+  const STAT_CARDS = [
+    {
+      label: "Total Records",
+      value: records.length,
+      icon: Users,
+      color: "text-blue-600",
+      bg: "bg-blue-50",
+      change: `${records.length - DEMO_STATS.total_records >= 0 ? "+" : ""}${records.length - DEMO_STATS.total_records} from demo`,
+    },
+    {
+      label: "Active",
+      value: activeRecords.length,
+      icon: Activity,
+      color: "text-emerald-600",
+      bg: "bg-emerald-50",
+      change: records.length > 0 ? `${Math.round((activeRecords.length / records.length) * 100)}% of total` : "0%",
+    },
+    {
+      label: "Sheltered",
+      value: shelteredRecords.length,
+      icon: Home,
+      color: "text-blue-600",
+      bg: "bg-blue-50",
+      change: `${shelteredRecords.length} housed`,
+    },
+    {
+      label: "Active Flags",
+      value: flaggedRecords.length,
+      icon: AlertTriangle,
+      color: "text-red-600",
+      bg: "bg-red-50",
+      change: flaggedRecords.length > 0 ? "Needs attention" : "All clear",
+    },
+  ];
+
+  const recentInteractions = [...interactions]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 5);
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
@@ -78,7 +88,7 @@ export default function DashboardPage() {
             Welcome back, Alex — {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
           </p>
         </div>
-        <Button className="gap-2" onClick={() => router.push("/records")}>
+        <Button className="gap-2" onClick={() => setNewOpen(true)}>
           <Plus className="h-4 w-4" />
           <span className="hidden sm:inline">New Record</span>
         </Button>
@@ -120,8 +130,8 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="pt-0">
               <div className="space-y-3">
-                {RECENT_INTERACTIONS.map((interaction) => {
-                  const record = DEMO_RECORDS.find((r) => r.id === interaction.record_id);
+                {recentInteractions.map((interaction) => {
+                  const record = records.find((r) => r.id === interaction.record_id);
                   const author = DEMO_TEAM.find((u) => u.id === interaction.author_id);
                   if (!record) return null;
 
@@ -144,7 +154,7 @@ export default function DashboardPage() {
                         </p>
                         <div className="flex items-center gap-2 mt-1">
                           <span className="text-[10px] text-[var(--muted-foreground)]">
-                            {author?.full_name} · {formatRelativeTime(interaction.created_at)}
+                            {author?.full_name ?? "Alex Rivera"} · {formatRelativeTime(interaction.created_at)}
                           </span>
                         </div>
                       </div>
@@ -152,6 +162,9 @@ export default function DashboardPage() {
                     </button>
                   );
                 })}
+                {recentInteractions.length === 0 && (
+                  <p className="text-sm text-[var(--muted-foreground)] text-center py-4">No activity yet</p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -167,10 +180,11 @@ export default function DashboardPage() {
             <CardContent className="pt-0 space-y-1.5">
               {QUICK_ACTIONS.map((action) => {
                 const Icon = action.icon;
+                const isNew = action.href === "/records/new";
                 return (
                   <button
                     key={action.label}
-                    onClick={() => router.push(action.href)}
+                    onClick={() => isNew ? setNewOpen(true) : router.push(action.href)}
                     className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-[var(--accent)] transition-colors text-left"
                   >
                     <div className="h-8 w-8 rounded-md bg-[var(--muted)] flex items-center justify-center flex-shrink-0">
@@ -198,8 +212,8 @@ export default function DashboardPage() {
             <CardContent className="pt-0">
               <div className="space-y-2">
                 {(Object.entries(STATUS_MAP) as [string, { label: string; color: string; bg: string }][]).map(([key, config]) => {
-                  const count = DEMO_RECORDS.filter((r) => r.status === key).length;
-                  const pct = Math.round((count / DEMO_RECORDS.length) * 100);
+                  const count = records.filter((r) => r.status === key).length;
+                  const pct = records.length > 0 ? Math.round((count / records.length) * 100) : 0;
                   return (
                     <div key={key}>
                       <div className="flex items-center justify-between mb-1">
@@ -229,13 +243,13 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-red-600">
                 <AlertTriangle className="h-4 w-4" />
-                Active Alerts ({FLAGGED_RECORDS.length})
+                Active Alerts ({flaggedRecords.length})
               </CardTitle>
             </div>
           </CardHeader>
           <CardContent className="pt-0">
             <div className="space-y-2">
-              {FLAGGED_RECORDS.map((record) => (
+              {flaggedRecords.map((record) => (
                 <button
                   key={record.id}
                   onClick={() => router.push(`/records/${record.id}`)}
@@ -245,12 +259,18 @@ export default function DashboardPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{record.full_name}</p>
                     <p className="text-[10px] text-red-600 truncate">
-                      {record.active_flags?.[0] && FLAG_MAP[record.active_flags[0].type]?.label}
+                      {record.active_flags[0] && (FLAG_MAP[record.active_flags[0].type]?.label ?? record.active_flags[0].label)}
                     </p>
                   </div>
                   <StatusBadge status={record.status} />
                 </button>
               ))}
+              {flaggedRecords.length === 0 && (
+                <div className="flex items-center gap-2 py-2 text-emerald-600">
+                  <CheckCircle2 className="h-4 w-4" />
+                  <p className="text-sm">No active alerts</p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -261,13 +281,13 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-yellow-600" />
-                Follow-Up Needed ({FOLLOW_UP_RECORDS.length})
+                Follow-Up Needed ({followUpRecords.length})
               </CardTitle>
             </div>
           </CardHeader>
           <CardContent className="pt-0">
             <div className="space-y-2">
-              {FOLLOW_UP_RECORDS.map((record) => (
+              {followUpRecords.map((record) => (
                 <button
                   key={record.id}
                   onClick={() => router.push(`/records/${record.id}`)}
@@ -284,7 +304,7 @@ export default function DashboardPage() {
                 </button>
               ))}
 
-              {FOLLOW_UP_RECORDS.length === 0 && (
+              {followUpRecords.length === 0 && (
                 <div className="flex items-center gap-2 py-2 text-emerald-600">
                   <CheckCircle2 className="h-4 w-4" />
                   <p className="text-sm">All caught up!</p>
@@ -306,8 +326,8 @@ export default function DashboardPage() {
         <CardContent className="pt-0">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {DEMO_TEAM.filter((u) => u.id !== "usr_current").map((member) => {
-              const memberInteractions = DEMO_INTERACTIONS.filter((i) => i.author_id === member.id);
-              const assignedRecords = DEMO_RECORDS.filter((r) => r.assigned_user_id === member.id);
+              const memberInteractions = interactions.filter((i) => i.author_id === member.id);
+              const assignedRecords = records.filter((r) => r.assigned_user_id === member.id);
               return (
                 <div key={member.id} className="flex items-center gap-3 p-3 rounded-lg bg-[var(--muted)]">
                   <Avatar name={member.full_name} size="md" />
@@ -324,6 +344,9 @@ export default function DashboardPage() {
           </div>
         </CardContent>
       </Card>
+
+      <NewEditRecordModal open={newOpen} onClose={() => setNewOpen(false)}
+        onSaved={(r) => router.push(`/records/${r.id}`)} />
     </div>
   );
 }
