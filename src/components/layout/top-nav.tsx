@@ -20,7 +20,7 @@ export function TopNav({ title }: TopNavProps) {
 
   return (
     <>
-      <header className="flex items-center gap-3 h-14 px-4 border-b border-[var(--border)] bg-[var(--background)] sticky top-0 z-30">
+      <header className="flex items-center gap-3 h-14 px-4 border-b border-[var(--border)] bg-[var(--background)]/80 backdrop-blur-md sticky top-0 z-30">
         {/* Search trigger */}
         <button
           onClick={() => setSearchOpen(true)}
