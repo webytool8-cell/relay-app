@@ -1,26 +1,51 @@
 "use client";
 
-import { useState } from "react";
-import { Search, Bell, Moon, Sun } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Search, Bell, Moon, Sun, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Avatar } from "@/components/ui/avatar";
 import { SearchPalette } from "@/components/search/search-palette";
 import { NotificationsPanel } from "./notifications-panel";
 import { useRecords } from "@/contexts/records-context";
+import { useUser } from "@/contexts/user-context";
 
 interface TopNavProps {
   title?: string;
 }
 
 export function TopNav({ title }: TopNavProps) {
+  const router = useRouter();
   const [searchOpen, setSearchOpen] = useState(false);
   const [notifsOpen, setNotifsOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [dark, setDark] = useState(false);
   const { unreadCount } = useRecords();
+  const { user, signOut } = useUser();
+  const menuRef = useRef<HTMLDivElement>(null);
 
   function toggleDark() {
     setDark(!dark);
     document.documentElement.classList.toggle("dark");
   }
+
+  function handleSignOut() {
+    setUserMenuOpen(false);
+    signOut();
+    router.push("/auth");
+  }
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!userMenuOpen) return;
+    function handler(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [userMenuOpen]);
 
   return (
     <>
@@ -56,9 +81,42 @@ export function TopNav({ title }: TopNavProps) {
             <NotificationsPanel open={notifsOpen} onClose={() => setNotifsOpen(false)} />
           </div>
 
-          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={toggleDark}>
+          <Button variant="ghost" size="icon" className="h-9 w-9 hidden sm:flex" onClick={toggleDark}>
             {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
+
+          {/* Mobile user menu */}
+          <div className="relative md:hidden" ref={menuRef}>
+            <button
+              onClick={() => setUserMenuOpen((v) => !v)}
+              className="h-9 w-9 rounded-full flex items-center justify-center hover:opacity-80 transition-opacity"
+            >
+              <Avatar name={user?.full_name ?? "Alex Rivera"} size="sm" />
+            </button>
+
+            {userMenuOpen && (
+              <div className="absolute right-0 top-full mt-1 w-52 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-xl z-50 overflow-hidden">
+                <div className="px-4 py-3 border-b border-[var(--border)]">
+                  <p className="text-sm font-medium truncate">{user?.full_name ?? "Alex Rivera"}</p>
+                  <p className="text-[10px] text-[var(--muted-foreground)] truncate">{user?.email ?? "alex@relay-demo.org"}</p>
+                </div>
+                <button
+                  onClick={toggleDark}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-[var(--accent)] transition-colors text-left"
+                >
+                  {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                  {dark ? "Light mode" : "Dark mode"}
+                </button>
+                <button
+                  onClick={handleSignOut}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors text-left border-t border-[var(--border)]"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Sign out
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
