@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -13,8 +13,10 @@ import {
   Settings,
   Zap,
   ChevronDown,
+  LogOut,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
+import { useUser } from "@/contexts/user-context";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -32,6 +34,13 @@ interface SidebarProps {
 
 export function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, signOut } = useUser();
+
+  function handleSignOut() {
+    signOut();
+    router.push("/auth");
+  }
 
   return (
     <aside
@@ -86,14 +95,21 @@ export function Sidebar({ className }: SidebarProps) {
         </ul>
       </nav>
 
-      {/* User */}
-      <div className="px-3 py-3 border-t border-[#1e1e35]">
-        <button className="w-full flex items-center gap-2.5 px-2 py-2 rounded-md hover:bg-white/5 transition-colors">
-          <Avatar name="Alex Rivera" size="sm" />
+      {/* User + sign out */}
+      <div className="px-3 py-3 border-t border-[#1e1e35] space-y-1">
+        <div className="flex items-center gap-2.5 px-2 py-2 rounded-md">
+          <Avatar name={user?.full_name ?? "?"} size="sm" />
           <div className="flex-1 text-left min-w-0">
-            <p className="text-xs font-medium truncate text-gray-200">Alex Rivera</p>
-            <p className="text-[10px] text-gray-500 truncate">Admin</p>
+            <p className="text-xs font-medium truncate text-gray-200">{user?.full_name}</p>
+            <p className="text-[10px] text-gray-500 truncate capitalize">{user?.role}</p>
           </div>
+        </div>
+        <button
+          onClick={handleSignOut}
+          className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+        >
+          <LogOut className="h-4 w-4 flex-shrink-0" />
+          Sign out
         </button>
       </div>
     </aside>

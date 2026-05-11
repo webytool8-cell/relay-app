@@ -1,16 +1,14 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Search, SlidersHorizontal, X, ChevronDown } from "lucide-react";
-import { DEMO_RECORDS, DEMO_STATUSES } from "@/lib/demo-data";
+import { Search, SlidersHorizontal, X, Flag } from "lucide-react";
+import { useRecords } from "@/contexts/records-context";
+import { DEMO_STATUSES } from "@/lib/demo-data";
 import { cn, formatRelativeTime } from "@/lib/utils";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Avatar } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Flag } from "lucide-react";
 
 type FilterState = {
   status: string;
@@ -19,7 +17,9 @@ type FilterState = {
   hasFlags: boolean;
 };
 
-function scoreRecord(record: (typeof DEMO_RECORDS)[number], query: string): number {
+type AnyRecord = { full_name: string; preferred_name?: string | null; aliases: string[]; notes?: string | null; org_record_id?: string | null; assigned_team?: string | null; program?: string | null; metadata: { [k: string]: unknown } };
+
+function scoreRecord(record: AnyRecord, query: string): number {
   const q = query.toLowerCase().trim();
   if (!q) return 1;
   const tokens = q.split(/\s+/);
@@ -52,6 +52,7 @@ function scoreRecord(record: (typeof DEMO_RECORDS)[number], query: string): numb
 
 export default function SearchPage() {
   const router = useRouter();
+  const { records } = useRecords();
   const [query, setQuery] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
@@ -61,30 +62,30 @@ export default function SearchPage() {
     hasFlags: false,
   });
 
-  const teams = Array.from(new Set(DEMO_RECORDS.map((r) => r.assigned_team).filter(Boolean)));
+  const teams = Array.from(new Set(records.map((r) => r.assigned_team).filter(Boolean)));
 
   const filtered = useMemo(() => {
-    let records = [...DEMO_RECORDS];
+    let list = [...records];
 
-    if (filters.status) records = records.filter((r) => r.status === filters.status);
-    if (filters.gender) records = records.filter((r) => r.gender?.toLowerCase() === filters.gender);
-    if (filters.team) records = records.filter((r) => r.assigned_team === filters.team);
-    if (filters.hasFlags) records = records.filter((r) => (r.active_flags?.length ?? 0) > 0);
+    if (filters.status) list = list.filter((r) => r.status === filters.status);
+    if (filters.gender) list = list.filter((r) => r.gender?.toLowerCase() === filters.gender);
+    if (filters.team) list = list.filter((r) => r.assigned_team === filters.team);
+    if (filters.hasFlags) list = list.filter((r) => (r.active_flags?.length ?? 0) > 0);
 
     if (query.trim()) {
-      records = records
+      list = list
         .map((r) => ({ r, score: scoreRecord(r, query) }))
         .filter(({ score }) => score > 0)
         .sort((a, b) => b.score - a.score)
         .map(({ r }) => r);
     } else {
-      records = records.sort((a, b) =>
+      list = list.sort((a, b) =>
         new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
       );
     }
 
-    return records;
-  }, [query, filters]);
+    return list;
+  }, [query, filters, records]);
 
   const activeFilterCount = Object.values(filters).filter(Boolean).length;
 
